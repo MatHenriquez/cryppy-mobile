@@ -11,7 +11,7 @@ import {
 
 const HORIZON = "https://horizon-testnet.stellar.org";
 
-// Generar claves
+// Generate keypairs
 export function createKeypair() {
   try {
     const kp = Keypair.random();
@@ -22,7 +22,7 @@ export function createKeypair() {
   }
 }
 
-// Fondear en testnet (Friendbot)
+// Get funds from testnet (Friendbot)
 export async function fundTestnet(publicKey: string) {
   try {
     const res = await fetch(
@@ -36,7 +36,7 @@ export async function fundTestnet(publicKey: string) {
   }
 }
 
-// Consultar balances
+// Get balances
 export async function getBalances(publicKey: string) {
   const res = await fetch(`${HORIZON}/accounts/${publicKey}`);
   if (!res.ok) throw new Error(`Horizon error: ${res.status}`);
@@ -47,19 +47,20 @@ export async function getBalances(publicKey: string) {
   }));
 }
 
-// Enviar XLM
+// Send XLM
 export async function payNative(
   senderSecret: string,
   destination: string,
   amount: string
 ) {
   const sender = Keypair.fromSecret(senderSecret);
-  // 1) Cargar cuenta y secuencia
+  // 1) Load account and sequence
   const acctRes = await fetch(`${HORIZON}/accounts/${sender.publicKey()}`);
   if (!acctRes.ok) throw new Error(`Load account error: ${acctRes.status}`);
   const acct = await acctRes.json();
 
-  // 2) Fee (simple: 100) o consulta fee_stats
+  // 2) Fee (simple: 100)
+  // ToDo: query fee_stats
   let fee = "100";
   try {
     const feeRes = await fetch(`${HORIZON}/fee_stats`);
@@ -69,7 +70,7 @@ export async function payNative(
     }
   } catch {}
 
-  // 3) Construir y firmar tx
+  // 3) Build and sign tx
   const tx = new TransactionBuilder(new Account(acct.id, acct.sequence), {
     fee,
     networkPassphrase: Networks.TESTNET,
@@ -86,7 +87,7 @@ export async function payNative(
 
   tx.sign(sender);
 
-  // 4) Enviar a Horizon
+  // 4) Send to Horizon
   const submit = await fetch(`${HORIZON}/transactions`, {
     method: "POST",
     headers: {
