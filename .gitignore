@@ -37,3 +37,10 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Android Studio
+.idea/
+*.iml
+.gradle/
+local.properties
+*.hprof
