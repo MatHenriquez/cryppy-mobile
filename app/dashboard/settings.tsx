@@ -2,7 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { authenticateWithBiometrics, getBiometricCapabilities, getBiometricTypeText } from '@/services/biometricAuth';
-import { getUserPreferences, updateUserPreferences } from '@/services/database';
+import { deleteUserAccount, getUserPreferences, updateUserPreferences } from '@/services/database';
+import { deleteSecureItem } from '@/services/secureStore';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, Switch, View } from 'react-native';
@@ -122,12 +123,54 @@ export default function SettingsScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
-            // TODO: Implement account deletion
-            Alert.alert('Funcionalidad pendiente', 'Esta función se implementará próximamente');
+            Alert.alert(
+              'Confirmación Final',
+              '¿Realmente quieres eliminar tu cuenta? Esta acción NO se puede deshacer.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Sí, eliminar',
+                  style: 'destructive',
+                  onPress: performAccountDeletion,
+                },
+              ]
+            );
           },
         },
       ]
     );
+  };
+
+  const performAccountDeletion = async () => {
+    if (!user) return;
+
+    try {
+      Alert.alert('Eliminando cuenta...', 'Por favor espera mientras eliminamos tu cuenta.');
+      
+      await deleteUserAccount(user.id);
+      
+      try {
+        await deleteSecureItem('lastUser');
+        await deleteSecureItem(`wallet_secret_${user.id}`);
+      } catch (error) {
+        console.warn('Error limpiando SecureStore:', error);
+      }
+      
+      logout();
+      
+      router.replace("/auth" as any);
+      
+      Alert.alert(
+        'Cuenta Eliminada',
+        'Tu cuenta ha sido eliminada permanentemente. Gracias por usar Cryppy.'
+      );
+    } catch (error: any) {
+      console.error('Error eliminando cuenta:', error);
+      Alert.alert(
+        'Error',
+        'Hubo un problema al eliminar tu cuenta: ' + (error.message || 'Error desconocido')
+      );
+    }
   };
 
   if (loading) {
