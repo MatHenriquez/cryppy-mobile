@@ -378,3 +378,24 @@ export function getUserStats(userId: number) {
     transactionsCount: transactionsCount.count,
   };
 }
+
+export async function deleteUserAccount(userId: number) {
+  try {
+    db.runSync("DELETE FROM transactions WHERE user_id = ?", [userId]);
+  
+    db.runSync("DELETE FROM stellar_accounts WHERE user_id = ?", [userId]);
+
+    db.runSync("DELETE FROM user_preferences WHERE user_id = ?", [userId]);
+    
+    const result = db.runSync("DELETE FROM users WHERE id = ?", [userId]);
+    
+    if (result.changes === 0) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    return { success: true, message: 'Cuenta eliminada exitosamente' };
+  } catch (error: any) {
+    console.error('Error eliminando cuenta:', error);
+    throw new Error('Error al eliminar la cuenta: ' + error.message);
+  }
+}
