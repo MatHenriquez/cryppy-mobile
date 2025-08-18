@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "cryppy",
+    "name": "Crippy",
     "slug": "cryppy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.yourname.cryppy",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -38,6 +39,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0367649a-2a88-4f90-b914-480ff759fbda"
+      }
     }
   }
 }
