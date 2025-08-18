@@ -4,8 +4,9 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { getUserStats, getUserWallets } from '@/services/database';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, View } from 'react-native';
 
 export default function DashboardHomeScreen() {
@@ -15,25 +16,33 @@ export default function DashboardHomeScreen() {
   const [stats, setStats] = useState({ walletsCount: 0, transactionsCount: 0 });
   const [wallets, setWallets] = useState<any[]>([]);
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!user) return;
+  const loadUserData = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const userStats = getUserStats(user.id);
+      const userWallets = getUserWallets(user.id);
       
-      try {
-        const userStats = getUserStats(user.id);
-        const userWallets = getUserWallets(user.id);
-        
-        setStats(userStats);
-        setWallets(userWallets);
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      }
-    };
+      setStats(userStats);
+      setWallets(userWallets);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  }, [user]);
 
+  useEffect(() => {
     if (user) {
       loadUserData();
     }
-  }, [user]);
+  }, [user, loadUserData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadUserData();
+      }
+    }, [user, loadUserData])
+  );
 
   const handleLogout = () => {
     Alert.alert(
