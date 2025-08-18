@@ -1,7 +1,9 @@
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { getBiometricCapabilities, getBiometricTypeText } from '@/services/biometricAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -12,6 +14,7 @@ import { Alert, Button, StyleSheet, TextInput, TouchableOpacity, View } from 're
 export default function LoginScreen() {
   const router = useRouter();
   const { login, tryBiometricLogin } = useAuth();
+  const colorScheme = useColorScheme();
   
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -88,8 +91,13 @@ export default function LoginScreen() {
         
         <View style={styles.formContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Nombre de usuario o email"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
@@ -97,8 +105,13 @@ export default function LoginScreen() {
           />
           
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Contraseña"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -167,11 +180,9 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
   buttonContainer: {
     marginTop: 8,
