@@ -1,7 +1,9 @@
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -10,6 +12,7 @@ import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
+  const colorScheme = useColorScheme();
   
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -62,10 +65,15 @@ export default function RegisterScreen() {
           Crea tu billetera Stellar segura
         </ThemedText>
         
-        <View style={styles.formContainer}>
+                <View style={styles.formContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Nombre de usuario"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
@@ -73,18 +81,28 @@ export default function RegisterScreen() {
           />
           
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Email"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            keyboardType="email-address"
           />
           
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Contraseña"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -93,8 +111,13 @@ export default function RegisterScreen() {
           />
           
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Confirmar contraseña"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -145,11 +168,9 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
   buttonContainer: {
     marginTop: 8,
