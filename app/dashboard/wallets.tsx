@@ -2,9 +2,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserWallets } from '@/services/database';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Button, FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, FlatList, StyleSheet, View } from 'react-native';
 
 export default function WalletsScreen() {
   const router = useRouter();
@@ -12,23 +13,22 @@ export default function WalletsScreen() {
   const [wallets, setWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadWallets = async () => {
-      if (!user) return;
-      
-      try {
-        const userWallets = getUserWallets(user.id);
-        setWallets(userWallets);
-      } catch (error) {
-        console.error('Error loading wallets:', error);
-        Alert.alert('Error', 'No se pudieron cargar las wallets');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadWallets = useCallback(async () => {
+    if (user?.id) {
+      const walletsData = await getUserWallets(user.id);
+      setWallets(walletsData);
+    }
+  }, [user?.id]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadWallets();
+    }, [loadWallets])
+  );
+
+  useEffect(() => {
     loadWallets();
-  }, [user]);
+  }, [loadWallets]);
 
   const renderWallet = ({ item }: { item: any }) => (
     <View style={styles.walletCard}>
