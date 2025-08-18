@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { saveWalletKeypair } from '@/services/database';
 import { setSecureItem } from '@/services/secureStore';
 import { createKeypair, fundTestnet } from '@/services/stellar';
@@ -11,6 +13,7 @@ import { Alert, Button, ScrollView, StyleSheet, TextInput, View } from 'react-na
 export default function CreateWalletScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const colorScheme = useColorScheme();
   const [alias, setAlias] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -67,8 +70,13 @@ export default function CreateWalletScreen() {
         <View style={styles.formContainer}>
           <ThemedText type="defaultSemiBold">Nombre de la Wallet</ThemedText>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: Colors[colorScheme ?? 'light'].tabIconDefault
+            }]}
             placeholder="Ej: Mi Wallet Principal"
+            placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
             value={alias}
             onChangeText={setAlias}
             maxLength={50}
@@ -129,11 +137,9 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
     marginTop: 8,
   },
   infoText: {
