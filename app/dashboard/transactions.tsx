@@ -2,7 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserTransactions } from '@/services/database';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 export default function TransactionsScreen() {
@@ -10,22 +11,28 @@ export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (!user) return;
-      
-      try {
-        const userTransactions = getUserTransactions(user.id);
-        setTransactions(userTransactions);
-      } catch (error) {
-        console.error('Error loading transactions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTransactions();
+  const loadTransactions = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const userTransactions = getUserTransactions(user.id);
+      setTransactions(userTransactions);
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTransactions();
+    }, [loadTransactions])
+  );
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
 
   const renderTransaction = ({ item }: { item: any }) => (
     <View style={styles.transactionCard}>
