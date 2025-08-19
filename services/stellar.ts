@@ -1,17 +1,44 @@
 import { Alert } from "react-native";
 import 'react-native-get-random-values';
 import {
-  Account,
-  Asset,
-  Keypair,
-  Networks,
-  Operation,
-  TransactionBuilder,
+    Account,
+    Asset,
+    Keypair,
+    Networks,
+    Operation,
+    TransactionBuilder,
 } from "stellar-base";
 
 const HORIZON = "https://horizon-testnet.stellar.org";
 
-// Generate keypairs
+export interface StellarBalance {
+  asset_type: string;
+  asset_code?: string;
+  asset_issuer?: string;
+  balance: string;
+  limit?: string;
+  buying_liabilities: string;
+  selling_liabilities: string;
+}
+
+export interface StellarTransaction {
+  id: string;
+  hash: string;
+  created_at: string;
+  source_account: string;
+  type_i: number;
+  type: string;
+  memo?: string;
+  memo_type?: string;
+}
+
+export interface StellarAccount {
+  id: string;
+  account_id: string;
+  sequence: string;
+  balances: StellarBalance[];
+}
+
 export function createKeypair() {
   try {
     const kp = Keypair.random();
@@ -22,7 +49,6 @@ export function createKeypair() {
   }
 }
 
-// Get funds from testnet (Friendbot)
 export async function fundTestnet(publicKey: string) {
   try {
     const res = await fetch(
@@ -36,7 +62,6 @@ export async function fundTestnet(publicKey: string) {
   }
 }
 
-// Get balances
 export async function getBalances(publicKey: string) {
   const res = await fetch(`${HORIZON}/accounts/${publicKey}`);
   if (!res.ok) throw new Error(`Horizon error: ${res.status}`);
@@ -47,7 +72,63 @@ export async function getBalances(publicKey: string) {
   }));
 }
 
-// Send XLM
+export async function getAccountTransactions(publicKey: string, limit: number = 20): Promise<StellarTransaction[]> {
+  try {
+    const response = await fetch(`${HORIZON}/accounts/${publicKey}/transactions?order=desc&limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data._embedded.records;
+  } catch (error) {
+    console.error('Error getting account transactions:', error);
+    return [];
+  }
+}
+
+export async function getTransactionOperations(transactionId: string) {
+  try {
+    const response = await fetch(`${HORIZON}/transactions/${transactionId}/operations`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data._embedded.records;
+  } catch (error) {
+    console.error('Error getting transaction operations:', error);
+    return [];
+  }
+}
+
+export async function isAccountActivated(publicKey: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${HORIZON}/accounts/${publicKey}`);
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function formatBalance(balance: string, decimals: number = 7): string {
+  const num = parseFloat(balance);
+  return num.toFixed(decimals).replace(/\.?0+$/, '');
+}
+
+export async function getXLMPrice(): Promise<number> {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd');
+    const data = await response.json();
+    return data.stellar?.usd || 0;
+  } catch (error) {
+    console.error('Error getting XLM price:', error);
+    return 0;
+  }
+}
+
 export async function payNative(
   senderSecret: string,
   destination: string,
