@@ -1,22 +1,65 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { getUserWallets } from '@/services/database';
+import { formatBalance, getBalances, getXLMPrice } from '@/services/stellar';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, FlatList, StyleSheet, View } from 'react-native';
+import { Alert, Button, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function WalletsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const colorScheme = useColorScheme();
   const [wallets, setWallets] = useState<any[]>([]);
+  const [balances, setBalances] = useState<{ [key: string]: string }>({});
+  const [usdPrices, setUsdPrices] = useState<{ [key: string]: number }>({});
+  const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert('Copiado', 'Dirección copiada al portapapeles');
+  };
 
   const loadWallets = useCallback(async () => {
     if (user?.id) {
+      setLoading(true);
       const walletsData = await getUserWallets(user.id);
       setWallets(walletsData);
+
+      const price = await getXLMPrice();
+      setXlmPrice(price);
+
+      const newBalances: { [key: string]: string } = {};
+      const newUsdPrices: { [key: string]: number } = {};
+
+      for (const wallet of walletsData) {
+        try {
+          const walletBalances = await getBalances(wallet.public_key);
+          const xlmBalance = walletBalances.find((b: { asset: string; balance: string }) => b.asset === 'XLM');
+          if (xlmBalance) {
+            const balance = parseFloat(xlmBalance.balance);
+            newBalances[wallet.public_key] = formatBalance(xlmBalance.balance);
+            newUsdPrices[wallet.public_key] = balance * price;
+          } else {
+            newBalances[wallet.public_key] = '0';
+            newUsdPrices[wallet.public_key] = 0;
+          }
+        } catch (error) {
+          console.error(`Error loading balance for ${wallet.public_key}:`, error);
+          newBalances[wallet.public_key] = 'Error';
+          newUsdPrices[wallet.public_key] = 0;
+        }
+      }
+
+      setBalances(newBalances);
+      setUsdPrices(newUsdPrices);
+      setLoading(false);
     }
   }, [user?.id]);
 
@@ -31,18 +74,45 @@ export default function WalletsScreen() {
   }, [loadWallets]);
 
   const renderWallet = ({ item }: { item: any }) => (
-    <View style={styles.walletCard}>
-      <ThemedText type="defaultSemiBold">{item.alias}</ThemedText>
-      <ThemedText type="default" style={styles.publicKey}>
-        {item.public_key}
-      </ThemedText>
-      <ThemedText type="default" style={styles.network}>
+    <View style={[styles.walletCard, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <View style={styles.walletHeader}>
+        <ThemedText type="defaultSemiBold" style={[styles.walletName, { color: Colors[colorScheme ?? 'light'].text }]}>
+          {item.alias}
+        </ThemedText>
+        <TouchableOpacity
+          style={styles.copyButton}
+          onPress={() => copyToClipboard(item.public_key)}
+        >
+          <ThemedText style={styles.copyButtonText}>📋 Copiar</ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity onPress={() => copyToClipboard(item.public_key)}>
+        <ThemedText type="default" style={[styles.publicKey, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
+          {item.public_key}
+        </ThemedText>
+      </TouchableOpacity>
+
+      <ThemedText type="default" style={[styles.network, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
         Red: {item.network}
       </ThemedText>
-      <ThemedText type="default" style={styles.date}>
+
+      {/* Balance en tiempo real */}
+      <View style={styles.balanceContainer}>
+        <ThemedText type="defaultSemiBold" style={styles.balance}>
+          {balances[item.public_key] || '⏳'} XLM
+        </ThemedText>
+        {usdPrices[item.public_key] > 0 && (
+          <ThemedText style={styles.usdPrice}>
+            ≈ ${usdPrices[item.public_key].toFixed(2)} USD
+          </ThemedText>
+        )}
+      </View>
+
+      <ThemedText type="default" style={[styles.date, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
         Creada: {new Date(item.created_at).toLocaleDateString()}
       </ThemedText>
-      
+
       <View style={styles.walletActions}>
         <Button
           title="Enviar"
@@ -56,6 +126,12 @@ export default function WalletsScreen() {
             router.push("/wallet/receive" as any);
           }}
         />
+        <Button
+          title="Historial"
+          onPress={() => {
+            router.push(`/wallet/transactions?publicKey=${item.public_key}` as any);
+          }}
+        />
       </View>
     </View>
   );
@@ -65,7 +141,7 @@ export default function WalletsScreen() {
       <ThemedText type="title" style={styles.title}>
         Mis Wallets
       </ThemedText>
-      
+
       <View style={styles.headerActions}>
         <Button
           title="Crear Nueva Wallet"
@@ -148,27 +224,69 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   walletCard: {
-    backgroundColor: '#f9f9f9',
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  walletHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  walletName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  copyButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  copyButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   publicKey: {
     fontFamily: 'monospace',
     fontSize: 12,
-    color: '#666',
     marginTop: 4,
   },
   network: {
     fontSize: 14,
-    color: '#666',
     marginTop: 8,
+  },
+  balanceContainer: {
+    backgroundColor: '#e8f5e8',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    alignItems: 'center',
+  },
+  balance: {
+    fontSize: 18,
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  usdPrice: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   date: {
     fontSize: 12,
-    color: '#999',
     marginTop: 4,
   },
   walletActions: {
