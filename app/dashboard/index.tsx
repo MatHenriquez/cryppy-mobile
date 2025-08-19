@@ -4,6 +4,7 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { getUserStats, getUserWallets } from '@/services/database';
+import { formatBalance, getBalances, getXLMPrice } from '@/services/stellar';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,18 +16,42 @@ export default function DashboardHomeScreen() {
   const colorScheme = useColorScheme();
   const [stats, setStats] = useState({ walletsCount: 0, transactionsCount: 0 });
   const [wallets, setWallets] = useState<any[]>([]);
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [totalUSD, setTotalUSD] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
     
     try {
+      setLoading(true);
       const userStats = getUserStats(user.id);
       const userWallets = getUserWallets(user.id);
       
       setStats(userStats);
       setWallets(userWallets);
+      
+      const xlmPrice = await getXLMPrice();
+      
+      let total = 0;
+      for (const wallet of userWallets) {
+        try {
+          const balances = await getBalances(wallet.public_key);
+          const xlmBalance = balances.find((b: any) => b.asset === 'XLM');
+          if (xlmBalance) {
+            total += parseFloat(xlmBalance.balance);
+          }
+        } catch (error) {
+          console.error(`Error loading balance for ${wallet.alias}:`, error);
+        }
+      }
+      
+      setTotalBalance(total);
+      setTotalUSD(total * xlmPrice);
     } catch (error) {
       console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
     }
   }, [user]);
 
@@ -72,6 +97,17 @@ export default function DashboardHomeScreen() {
 
       <ThemedView style={[styles.statsContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
         <ThemedText type="subtitle">Resumen</ThemedText>
+        
+        {/* Balance Total */}
+        <View style={styles.balanceSection}>
+          <ThemedText type="title" style={styles.totalBalance}>
+            {loading ? '⏳' : formatBalance(totalBalance.toString())} XLM
+          </ThemedText>
+          <ThemedText style={styles.totalUSD}>
+            ≈ ${totalUSD.toFixed(2)} USD
+          </ThemedText>
+        </View>
+        
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <ThemedText type="title" style={styles.statNumber}>
@@ -162,6 +198,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+  },
+  balanceSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  totalBalance: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  totalUSD: {
+    fontSize: 16,
+    color: '#666',
+    fontStyle: 'italic',
   },
   statsGrid: {
     flexDirection: 'row',
