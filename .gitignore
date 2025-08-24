@@ -44,3 +44,7 @@ app-example
 .gradle/
 local.properties
 *.hprof
+
+# IDEs
+.vscode/
+.idea/
