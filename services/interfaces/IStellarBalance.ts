@@ -1,6 +1,9 @@
-import { IStellarAsset } from "./IStellarAsset";
-
-export interface IStellarBalance extends IStellarAsset {
-  asset: string;
+export interface IStellarBalance {
+  asset_type: string;
+  asset_code?: string;
+  asset_issuer?: string;
   balance: string;
+  limit?: string;
+  buying_liabilities: string;
+  selling_liabilities: string;
 }
