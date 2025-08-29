@@ -45,7 +45,7 @@ export default function WalletsScreen() {
           if (xlmBalance) {
             const balance = parseFloat(xlmBalance.balance);
             newBalances[wallet.public_key] = formatBalance(xlmBalance.balance);
-            newUsdPrices[wallet.public_key] = balance * price;
+            newUsdPrices[wallet.public_key] = balance * xlmPrice;
           } else {
             newBalances[wallet.public_key] = '0';
             newUsdPrices[wallet.public_key] = 0;
