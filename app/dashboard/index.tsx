@@ -3,8 +3,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getUserStats, getUserWallets } from '@/services/database';
-import { formatBalance, getBalances, getXLMPrice } from '@/services/stellar';
+import { getUserWallets } from '@/services/database';
+import { formatBalance, getBalances, getXLMPrice, getAccountTransactions } from '@/services/stellar';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -25,27 +25,39 @@ export default function DashboardHomeScreen() {
     
     try {
       setLoading(true);
-      const userStats = getUserStats(user.id);
       const userWallets = getUserWallets(user.id);
-      
-      setStats(userStats);
       setWallets(userWallets);
       
       const xlmPrice = await getXLMPrice();
       
       let total = 0;
+      let totalTransactions = 0;
+      
+      // Procesar cada wallet activa
       for (const wallet of userWallets) {
-        try {
-          const balances = await getBalances(wallet.public_key);
-          const xlmBalance = balances.find((b: any) => b.asset === 'XLM');
-          if (xlmBalance) {
-            total += parseFloat(xlmBalance.balance);
+        if (wallet.is_active) {
+          try {
+            // Obtener balance
+            const balances = await getBalances(wallet.public_key);
+            const xlmBalance = balances.find((b: any) => b.asset === 'XLM');
+            if (xlmBalance) {
+              total += parseFloat(xlmBalance.balance);
+            }
+            
+            // Contar transacciones
+            const transactions = await getAccountTransactions(wallet.public_key, 50);
+            totalTransactions += transactions.length;
+          } catch (error) {
+            console.error(`Error loading data for ${wallet.alias}:`, error);
           }
-        } catch (error) {
-          console.error(`Error loading balance for ${wallet.alias}:`, error);
         }
       }
       
+      // Actualizar estados
+      setStats({ 
+        walletsCount: userWallets.filter(w => w.is_active).length, 
+        transactionsCount: totalTransactions 
+      });
       setTotalBalance(total);
       setTotalUSD(total * xlmPrice);
     } catch (error) {
